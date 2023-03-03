@@ -27,3 +27,9 @@ On running the server
 it'll be updating the list as below :
 
 ![websockets](https://user-images.githubusercontent.com/85973/221403190-8832fbec-fd9b-4817-a619-8e4f732e232c.gif)
+
+Added traditional way, revere-ajax to achieve this in PHP :
+
+`php -S localhost:8989`
+
+And goto : http://localhost:8989/reverse-ajax/client.html and perform the same actions

@@ -1,0 +1,110 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head> 
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" /> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
+    <title>WebSocker Client</title> 
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://unpkg.com/alpinejs@3.10.5/dist/cdn.min.js" defer></script>
+    <script>
+    let people = ['John', 'Mary', 'Elizabeth'];
+    let global_status = ['Idle'];
+    const url = "http://localhost:8989/reverse-ajax/run.php";
+    let contactServer = async (persons_data, who, global_status) =>
+    {            
+        // Step 1: start the fetch and obtain a reader
+        let response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/x-www-urlencoded", }, body: who });
+
+        const reader = response.body.getReader();
+
+        // Step 2: get total length
+        // const contentLength = +response.headers.get('Content-Length');
+
+        // Step 3: read the data
+        let receivedLength = 0; // received that many bytes at the moment
+        let chunks = []; // array of received binary chunks (comprises the body)        
+
+        while(true)
+        {
+            let chunks_part = [];
+
+            const {done, value} = await reader.read();
+
+            if (done)
+            {
+                break;
+            }            
+
+            chunks.push(value); chunks_part.push(value);
+            receivedLength += value.length;            
+
+            let chunksAll = new Uint8Array(value.length);
+            let position = 0;            
+            for(let chunk of chunks_part)
+            {
+                chunksAll.set(chunk, position);
+                position += chunk.length;
+            }            
+            
+            let result = new TextDecoder("utf-8").decode(chunksAll);            
+
+            if (result.startsWith("FETCHING"))
+            {
+                global_status[0] = result;
+                console.log("status = ", global_status[0]);
+            }            
+            else if (result.startsWith(who.slice(0,-1)))
+            {
+                console.log(result);
+                persons_data.push(result);
+            }
+            else if (result == 'DONE')
+            {
+                global_status[0] = "DONE";
+                console.log('DONE : Got all data from Socket for this round-trip');
+            }
+        }
+
+        // Step 4: concatenate chunks into single Uint8Array
+        let chunksAll = new Uint8Array(receivedLength); // (4.1)
+        let position = 0;
+
+        for(let chunk of chunks)
+        {
+            chunksAll.set(chunk, position); // (4.2)
+            position += chunk.length;
+        }
+
+        // Step 5: decode into a string
+        let result = new TextDecoder("utf-8").decode(chunksAll);
+        console.log(result);
+
+        // We're done!
+        // let commits = JSON.parse(result);
+        // alert(commits[0].author.login);
+    }
+    </script>
+</head> 
+<body>
+
+    <div x-data="{ persons: people, status: global_status }" class="container mt-5">
+
+        <div class="d-flex gap-3 justify-content-center">
+            <button x-on:click="contactServer(persons, 'LANDLORDS', status)" class="btn btn-primary">Get LandLords</button>
+            <button x-on:click="contactServer(persons, 'TENANTS', status)" class="btn btn-warning">Get Tentants</button> 
+        </div>
+
+        <p class="text-center mt-1 pt-3">Status : <span x-text="status[0]"></span></p>
+
+        <div x-init="console.log(persons)" class="d-flex flex-column gap-3 border border-info p-3">
+            <template x-for="(person, i) in persons" :key="Date.now() + Math.floor(Math.random() * 1000000)">
+                <div class="d-flex gap-3">
+                    <div x-text="i + 1"></div>
+                    <div x-text="person"></div>
+                </div>
+            </template>
+        </div>
+
+</body>
+</html>
