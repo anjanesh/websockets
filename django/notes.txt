@@ -1,0 +1,1 @@
+daphne -b 127.0.0.1 -p 8989 myproject.asgi:application
